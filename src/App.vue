@@ -1,6 +1,7 @@
 <template>
   <div class="app-container">
     <h1>Dice Roller with History</h1>
+    <p class="example-pr-banner">This is an example PR change!</p>
 
     <!-- Input and Roll button (unchanged) -->
     <div class="input-section">
@@ -12,6 +13,7 @@
     <!-- Displayed results / chart -->
     <div v-if="displayedResults.length" class="results-section">
       <h3>Distribution:</h3>
+      <p class="distribution-tip">Tip: Click a bar to highlight it!</p>
 
       <div class="chart-container">
         <div
@@ -24,6 +26,8 @@
             class="bar"
             :ref="(el) => (bars[index] = el)"
             :data-value="freq"
+            @click="highlightBar(index)"
+            :class="{ 'highlighted-bar': highlightedBarIndex === index }"
           ></div>
 
           <!-- Dice icons with Font Awesome -->
@@ -104,6 +108,12 @@
           </span>
         </li>
       </ul>
+    </div>
+
+    <!-- Add: Confetti celebration when all dice are 6 -->
+    <div v-if="showConfetti" class="confetti-overlay">
+      <div v-for="n in 60" :key="n" class="confetti-piece" :style="confettiStyle(n)"></div>
+      <div class="confetti-message">🎉 All dice are 6! 🎉</div>
     </div>
   </div>
 </template>
@@ -310,6 +320,12 @@ export default {
       animateBars();
     });
 
+    // Highlighting logic
+    const highlightedBarIndex = ref(null);
+    function highlightBar(index) {
+      highlightedBarIndex.value = index === highlightedBarIndex.value ? null : index;
+    }
+
     // Existing computed summaries
     const sum2Plus = computed(() => {
       return (
@@ -339,6 +355,30 @@ export default {
       return displayedDistribution[4] + displayedDistribution[5];
     });
 
+    // Confetti state
+    const showConfetti = ref(false);
+    function confettiStyle(n) {
+      const colors = ["#ff6384", "#36a2eb", "#ffce56", "#4bc0c0", "#9966ff", "#ff9f40"];
+      const left = Math.random() * 100;
+      const delay = Math.random() * 2;
+      const rotate = Math.random() * 360;
+      const color = colors[n % colors.length];
+      return {
+        left: left + "%",
+        animationDelay: delay + "s",
+        background: color,
+        transform: `rotate(${rotate}deg)`
+      };
+    }
+    function triggerConfettiIfAllSix() {
+      if (displayedResults.value.length > 0 && displayedResults.value.every(v => v === 6)) {
+        showConfetti.value = true;
+        setTimeout(() => { showConfetti.value = false; }, 3500);
+      }
+    }
+    // Watch for new rolls to trigger confetti
+    watch(displayedResults, triggerConfettiIfAllSix);
+
     return {
       numDice,
       rollHistory,
@@ -355,11 +395,19 @@ export default {
       reRollOnes,
       reRollX,
 
+      // Highlighting state and method
+      highlightedBarIndex,
+      highlightBar,
+
       // Summaries for 2+..5+
       sum2Plus,
       sum3Plus,
       sum4Plus,
       sum5Plus,
+
+      // Confetti state
+      showConfetti,
+      confettiStyle,
     };
   },
 };
@@ -372,10 +420,23 @@ export default {
   padding: 20px;
   font-family: sans-serif;
   text-align: center;
+  background: #f8f9fa; /* Example PR: subtle background color */
+}
+
+.example-pr-banner {
+  background-color: #d1e7dd;
+  color: #0f5132;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: bold;
 }
 
 .input-section {
   margin-bottom: 20px;
+  background: #e3f2fd; /* Example PR: highlight input area */
+  padding: 10px;
+  border-radius: 8px;
 }
 
 .results-section {
@@ -406,6 +467,7 @@ export default {
   margin-bottom: 5px;
   height: 0px; /* start from zero */
   transition: height 0.2s ease-out;
+  border-radius: 4px; /* Example PR: rounded bars */
 }
 
 .bar-label {
@@ -417,6 +479,13 @@ export default {
 
 .dice-fa-icon {
   font-size: 24px;
+  color: #007bff; /* Example PR: blue dice icons */
+}
+
+/* Highlighted bar style */
+.highlighted-bar {
+  border: 2px solid #ffc107;
+  background-color: #3b8b57;
 }
 
 /* Big button styling for the summary buttons */
@@ -431,7 +500,7 @@ export default {
 .big-btn {
   padding: 12px 20px;
   font-size: 1rem;
-  background-color: #28a745;
+  background-color: #007bff; /* Example PR: blue summary buttons */
   color: white;
   border: none;
   border-radius: 6px;
@@ -441,7 +510,7 @@ export default {
 }
 
 .big-btn:hover {
-  background-color: #218838;
+  background-color: #0056b3; /* Example PR: darker blue on hover */
 }
 
 .reroll-section {
@@ -484,5 +553,48 @@ export default {
   font-size: 0.9rem;
   color: #ccc;
   margin-left: 5px;
+}
+
+/* Confetti styles */
+.confetti-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  opacity: 0.8;
+  animation: confetti-fall 3s forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0);
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+  }
+}
+
+.confetti-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  z-index: 1001;
 }
 </style>
